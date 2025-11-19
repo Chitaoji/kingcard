@@ -13,7 +13,7 @@ authors = [
 maintainers = [
   {name = "Chitaoji", email = "2360742040@qq.com"}
 ]
-description = "King card-game."
+description = "Provides a simulator of the King-Card game."
 readme = "README.md"
 license = "BSD-3-Clause"
 license-files = ["LICENSE"]

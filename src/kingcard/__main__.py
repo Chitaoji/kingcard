@@ -8,7 +8,14 @@ NOTE: this module is private. All functions and objects are available in the mai
 
 import click
 
+from .core import CommunicationError, KingCardSimulator
+
 
 @click.command(context_settings={"help_option_names": ["-h", "--help"]})
 def run() -> None:
-    """Read and display a config file."""
+    """Start a king-card game."""
+    try:
+        simulator = KingCardSimulator()
+        simulator.loop()
+    except CommunicationError:
+        pass

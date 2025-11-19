@@ -1,25 +1,25 @@
-# *auto-generated*
+# kingcard
 A template repository for building python packages. Please replace `$package` with the package's name in `metadata.yml`.
 
 ## Installation
 ```sh
-*auto-generated*
+$ pip install kingcard
 ```
 
 ## Requirements
 ```txt
-*auto-generated*
+
 ```
 
 ## See Also
 ### Github repository
-* *auto-generated*
+* https://github.com/Chitaoji/kingcard/
 
 ### PyPI project
-* *auto-generated*
+* https://pypi.org/project/kingcard/
 
 ## License
-*auto-generated*
+This project falls under the BSD 3-Clause License.
 
 ## History
 ### v0.0.0
