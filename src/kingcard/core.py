@@ -21,7 +21,7 @@ class KingCardSimulator:
     def __init__(self) -> None:
         """Initialize."""
         self.datadir = Path("~/AppData/Local/KingCard").expanduser()
-        self.round = 0
+        self.round = -1
 
         match input("[Init] Start the game as a server? (y/n) ").lower():
             case "y":
@@ -61,7 +61,7 @@ class KingCardSimulator:
         self.my_units = UnitsCounter()
         self.opp_units = UnitsCounter()
 
-        print("[Game Start] Type /q to quit.")
+        print("[Game Start] help: /h  quit: /q")
 
     def loop(self) -> None:
         """Loop until the communcation is ended."""
@@ -72,16 +72,21 @@ class KingCardSimulator:
                 break
             except CommunicationRestart:
                 self.round = 0
+            except GameOver:
+                self.round = -1
 
     def communicate(self) -> None:
         """Communicate with server/client."""
+        if self.round == -1:
+            msg = input("[Game Over] restart: /r  help: /h  quit: /q ")
+            self._check_message(msg)
+            return
         self.round += 1
         msg = input(
-            f"[Round {self.round}] {self.my_units}  vs  {self.opp_units}\nPlay your card: "
+            f"[Round {self.round}] {self.my_units}  vs  {self.opp_units}\n"
+            "Play your card: "
         )
-        self.tcp_socket.send(msg.encode("utf-8"))
         self._check_message(msg)
-        print(f"The opponent played: {self._get_message_from_opponent()}")
 
     def save_settings(self) -> None:
         """Save the settings."""
@@ -134,16 +139,22 @@ class KingCardSimulator:
 
     def _check_message(self, message: str) -> None:
         if not message.startswith("/"):
+            if self.round > -1:
+                self.tcp_socket.send(message.encode("utf-8"))
+                print(f"The opponent played: {self._get_message_from_opponent()}")
             return
         match message[1:].lower():
             case "q":
-                print("Exiting the game...")
+                self.tcp_socket.send(message.encode("utf-8"))
+                print("[Exit] Waiting for the opponent...")
                 self.tcp_socket.recv(1024)
-                print("[Game Over] Communication terminated.")
+                print("[Exit] Communication terminated.")
                 self.tcp_socket.close()
                 raise CommunicationEnd()
             case "r":
-                print("[Game Restart] Restarting the game...")
+                self.tcp_socket.send(message.encode("utf-8"))
+                print("[Game Restart] Waiting for the opponent...")
+                self.tcp_socket.recv(1024)
                 raise CommunicationRestart()
 
     def _get_message_from_opponent(self) -> str:
@@ -152,7 +163,7 @@ class KingCardSimulator:
             return msg
         match msg[1:].lower():
             case "q":
-                print("[Game Over] The opponent terminated the communication.")
+                print("[Exit] The opponent terminated the communication.")
                 self.tcp_socket.close()
                 raise CommunicationEnd()
             case "r":
@@ -170,3 +181,7 @@ class CommunicationEnd(Exception):
 
 class CommunicationRestart(Exception):
     """Communication Restart."""
+
+
+class GameOver(Exception):
+    """Game over."""
