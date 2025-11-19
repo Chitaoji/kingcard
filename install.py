@@ -1,14 +1,4 @@
-"""
-Setup the package.
-
-To use the full functionality of this file, you must:
-
-```sh
-$ pip install build
-$ pip install pyyaml
-$ pip install re-extensions
-```
-"""
+"""Install the package."""
 
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-

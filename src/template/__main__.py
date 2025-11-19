@@ -1,8 +1,8 @@
 """
-Contains the cli api of template.
+Contains the cli api of kingcard.
 
 NOTE: this module is private. All functions and objects are available in the main
-`template` namespace - use that instead.
+`kingcard` namespace - use that instead.
 
 """
 

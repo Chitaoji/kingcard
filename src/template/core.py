@@ -1,8 +1,8 @@
 """
-Contains the core of template: ... , etc.
+Contains the core of kingcard: ... , etc.
 
 NOTE: this module is private. All functions and objects are available in the main
-`template` namespace - use that instead.
+`kingcard` namespace - use that instead.
 
 """
 
