@@ -14,21 +14,23 @@ class UnitsCounter:
 
     def __init__(self, init_units: dict[str, int] | None = None) -> None:
         if init_units is None:
-            init_units = {"k": 1, "c": 2, "i": 5, "s": 2}
-        self.init_nums = init_units
+            init_units = {"k": 1, "n": 2, "i": 5, "s": 2}
+        self.init_units = init_units
         self.units = init_units.copy()
 
     def __repr__(self) -> str:
         return str(self)
 
     def __str__(self) -> str:
-        return " ".join(f"{v}{k.upper()}" for k, v in self.init_nums.items())
+        return "".join(f"{k.upper()*v}" for k, v in self.units.items())
 
-    def add(self, mark: str) -> None:
+    def add(self, tag: str) -> None:
         """Add a unit."""
-        self.units[mark] += 1
+        self.units[tag] += 1
 
-    def destroy(self, mark: str) -> None:
-        """Destroy a unit."""
-        if self.units[mark] > 0:
-            self.units[mark] -= 1
+    def remove(self, tag: str) -> None:
+        """Remove a unit."""
+        if self.units[tag] > 0:
+            self.units[tag] -= 1
+        else:
+            raise ValueError(f"tag {tag!r} has no units left")
