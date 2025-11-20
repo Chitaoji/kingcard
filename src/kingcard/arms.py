@@ -6,19 +6,23 @@ NOTE: this module is private. All functions and objects are available in the mai
 
 """
 
-from typing import Self
+from typing import TYPE_CHECKING, Self
 
-from .counter import UnitsCounter
 from .error import GameOver
 
-__all__ = ["ARMS"]
+if TYPE_CHECKING:
+    from .counter import CardCounter
+    from .io import IO
+
+__all__ = []
 
 
 class Unit:
     """Defines units."""
 
     tag: str
-    level: int
+    rank: int
+    io: "IO"
 
     @property
     def fullname(self):
@@ -27,136 +31,135 @@ class Unit:
 
     def match(self, name: str) -> bool:
         """Match the card-name."""
-        lower_name = name.lower()
-        return lower_name == self.tag or lower_name == self.fullname.lower()
+        upper_name = name.upper()
+        return upper_name == self.tag or upper_name == self.fullname.upper()
+
+    def is_a(self, unit_type: type) -> bool:
+        """Returns whether this unit is of `unit_type`."""
+        return isinstance(self, unit_type)
 
     def on_round_begin(
-        self, enemy: Self, units: UnitsCounter, enemies: UnitsCounter
+        self, enemy: Self, ours: "CardCounter", enemies: "CardCounter"
     ) -> None:
         """Actions on the begining of round."""
-        self.on_battle(enemy, units, enemies)
-        enemy.on_battle(self, enemies, units, True)
+        self.on_battle(enemy, ours, enemies)
+        enemy.on_battle(self, enemies, ours)
 
     def on_battle(
-        self,
-        enemy: Self,
-        units: UnitsCounter,
-        enemies: UnitsCounter,
-        is_enemy: bool = False,
+        self, enemy: Self, ours: "CardCounter", enemies: "CardCounter"
     ) -> None:
         """Actions on the battle."""
-        if enemy.level < self.level:
-            enemy.on_destroyed(enemies, units, not is_enemy)
-        elif enemy.level == self.level:
-            enemy.on_draw(enemies, units, not is_enemy)
+        if enemy.rank < self.rank:
+            enemy.on_destroyed(enemies, ours)
+        elif enemy.rank == self.rank:
+            enemy.on_draw(enemies, ours)
 
-    def on_draw(
-        self, units: UnitsCounter, enemies: UnitsCounter, is_enemy: bool = False
-    ) -> None:
+    def on_draw(self, ours: "CardCounter", enemies: "CardCounter") -> None:
         """Actions on draw."""
         _ = enemies
-        if is_enemy:
-            print("\n    Both were destroyed.")
-        units.remove(self.tag)
+        if ours.is_opponent:
+            self.io.newline()
+            self.io.both_destroyed()
+        ours.remove(self.tag)
 
-    def on_destroyed(
-        self, units: UnitsCounter, enemies: UnitsCounter, is_enemy: bool = False
-    ) -> None:
+    def on_destroyed(self, ours: "CardCounter", enemies: "CardCounter") -> None:
         """Actions on being destroyed."""
         _ = enemies
-        if is_enemy:
-            print(f"\n    Enemy's {self.fullname} was defeated.")
-        else:
-            print(f"\n    Your {self.fullname} was defeated.")
-        units.remove(self.tag)
+        self.io.newline()
+        self.io.defeated(self, ours.is_opponent)
+        ours.remove(self.tag)
 
 
 class King(Unit):
     """King."""
 
-    tag = "k"
-    level = 4
+    tag = "K"
+    rank = 5
 
-    def on_battle(
-        self,
-        enemy: Self,
-        units: UnitsCounter,
-        enemies: UnitsCounter,
-        is_enemy: bool = False,
-    ) -> None:
+    def on_battle(self, enemy: Self, ours, enemies) -> None:
         """Actions on meeting the enemy."""
-        if enemy.level == 1:
+        if enemy.is_a(Slave):
             pass
         else:
-            super().on_battle(enemy, units, enemies, is_enemy)
+            super().on_battle(enemy, ours, enemies)
 
-    def on_draw(
-        self, units: UnitsCounter, enemies: UnitsCounter, is_enemy: bool = False
-    ) -> None:
+    def on_draw(self, ours, enemies) -> None:
         """Actions on draw."""
-        if is_enemy:
-            print("\n    Both returned back.")
+        if ours.is_opponent:
+            self.io.newline()
+            self.io.both_returned()
 
-    def on_destroyed(self, units, enemies, is_enemy=False) -> None:
-        super().on_destroyed(units, enemies, is_enemy)
-        if is_enemy:
+    def on_destroyed(self, ours, enemies) -> None:
+        super().on_destroyed(ours, enemies)
+        if ours.is_opponent:
             raise GameOver("win")
         raise GameOver("lose")
 
 
 class Knight(Unit):
-    """Cavalier."""
+    """Knight."""
 
-    tag = "n"
-    level = 3
+    tag = "N"
+    rank = 4
 
-    def on_battle(
-        self,
-        enemy: Self,
-        units: UnitsCounter,
-        enemies: UnitsCounter,
-        is_enemy: bool = False,
-    ) -> None:
+    def on_battle(self, enemy: Self, ours, enemies) -> None:
         """Actions on meeting the enemy."""
-        if enemy.level == 1:
-            print("\n    Nothing happens.")
+        if enemy.is_a(Slave):
+            self.io.newline()
+            self.io.both_returned()
         else:
-            super().on_battle(enemy, units, enemies, is_enemy)
+            super().on_battle(enemy, ours, enemies)
 
 
 class Infantry(Unit):
-    """Cavalier."""
+    """Infantry."""
 
-    tag = "i"
-    level = 2
+    tag = "I"
+    rank = 3
+
+
+class Militia(Unit):
+    """Militia."""
+
+    tag = "M"
+    rank = 2
 
 
 class Slave(Unit):
-    """Cavalier."""
+    """Slave."""
 
-    tag = "s"
-    level = 1
+    tag = "S"
+    rank = 1
 
-    def on_battle(self, enemy: Self, units, enemies, is_enemy=False) -> None:
-        if enemy.level == 4:
-            enemy.on_destroyed(enemies, units, not is_enemy)
+    def on_battle(self, enemy: Self, ours, enemies) -> None:
+        if enemy.rank == 5:
+            enemy.on_destroyed(enemies, ours)
         else:
-            super().on_battle(enemy, units, enemies, is_enemy)
+            super().on_battle(enemy, ours, enemies)
 
-    def on_draw(
-        self, units: UnitsCounter, enemies: UnitsCounter, is_enemy: bool = False
-    ) -> None:
+    def on_draw(self, ours, enemies) -> None:
         """Actions on draw."""
-        if is_enemy:
-            print("    Both returned back.")
+        if ours.is_opponent:
+            self.io.newline()
+            self.io.both_returned()
 
-    def on_destroyed(self, units, enemies, is_enemy=False) -> None:
-        if is_enemy:
-            print(f"\n    You captured Enemy's {self.fullname}.")
-        else:
-            print(f"\n    Enemy captured your {self.fullname}.")
-        units.remove(self.tag)
+    def on_destroyed(self, ours, enemies) -> None:
+        self.io.newline()
+        self.io.captured(self, ours.is_opponent)
+        ours.remove(self.tag)
         enemies.add(self.tag)
 
 
-ARMS: dict[str, Unit] = {"k": King(), "n": Knight(), "i": Infantry(), "s": Slave()}
+ARMS: dict[str, Unit] = {
+    King.tag: King(),
+    Knight.tag: Knight(),
+    Infantry.tag: Infantry(),
+    Militia.tag: Militia(),
+    Slave.tag: Slave(),
+}
+
+
+def set_unit_io(io: "IO") -> None:
+    """Set io for the units."""
+    for unit in ARMS.values():
+        unit.io = io

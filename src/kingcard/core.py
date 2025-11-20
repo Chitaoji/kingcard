@@ -9,15 +9,14 @@ NOTE: this module is private. All functions and objects are available in the mai
 from configparser import ConfigParser
 from pathlib import Path
 from socket import AF_INET, SOCK_STREAM, socket
-from time import sleep
 
-from .arms import ARMS
-from .counter import UnitsCounter
+from .arms import ARMS, set_unit_io
+from .counter import CardCounter
 from .error import CommunicationEnd, CommunicationError, CommunicationRestart, GameOver
+from .io import IO
 
 __all__ = ["KingCardSimulator"]
 
-SLEEP_TIME = 1
 
 SPLIT1 = "-" * 50 + "\n"
 SPLIT2 = "=" * 50 + "\n"
@@ -32,7 +31,9 @@ class KingCardSimulator:
         self.round = 0
         self.locked = False
 
-        match input("[Init] Start the game as a server? (y/n) ").lower():
+        self.io = IO()
+
+        match self.io.input.start_as_server():
             case "y":
                 self.is_server = True
             case "n":
@@ -42,43 +43,45 @@ class KingCardSimulator:
 
         if self.is_server:
             self.ip = ""
-            port = input("    server port (skip to use the last setting): ")
+            port = self.io.input.server_port()
             if not port:
                 self.load_settings()
             else:
                 self.port = int(port)
                 self.save_settings()
         else:
-            self.ip = input("    server ip (skip to use the last setting): ")
+            self.ip = self.io.input.server_ip()
             if not self.ip:
                 self.load_settings()
             else:
-                self.port = int(input("server port: "))
+                self.port = int(self.io.input.server_port_no_skip())
                 self.save_settings()
 
         tcp_socket = socket(AF_INET, SOCK_STREAM)
-        test_msg = "D-Card Game Start"
+        test_msg = "KingCard Game-Start"
 
         if self.is_server:
             tcp_socket.bind((self.ip, self.port))
             tcp_socket.listen(128)
-            print("    Please wait for the client...")
+            self.io.wait_for_client()
             self.tcp_socket, _ = tcp_socket.accept()
             self.tcp_socket.send(test_msg.encode("utf-8"))
         else:
             tcp_socket.connect((self.ip, self.port))
             self.tcp_socket = tcp_socket
-            print("    Connecting to the server...")
-            self.sleep()
+            self.io.connect_to_server()
             if not self.tcp_socket.recv(1024).decode("utf-8") == test_msg:
-                print("[Error] Server not found.")
+                self.io.error.server_not_found()
                 raise CommunicationError()
 
-        self.units = UnitsCounter()
-        self.enemies = UnitsCounter()
+        self.ours = CardCounter()
+        self.enemies = CardCounter(None, True)
 
-        print(f"{SPLIT2}[Game Start]\n    help: /h  quit: /q  restart: /r")
-        self.sleep()
+        set_unit_io(self.io)
+
+        self.io.double_line()
+        self.io.game_start()
+        self.io.hint()
 
     def save_settings(self) -> None:
         """Save the settings."""
@@ -104,7 +107,7 @@ class KingCardSimulator:
         with open(ini_path, "w", encoding="utf-8") as f:
             parser.write(f)
 
-        print(f"Settings recorded in {ini_path}")
+        self.io.settings_recorded(ini_path)
 
     def load_settings(self) -> None:
         """Load the settings."""
@@ -112,7 +115,7 @@ class KingCardSimulator:
             self.datadir.mkdir(parents=True)
 
         if not (ini_path := self.datadir / "settings.ini").exists():
-            print("[Error] No recorded setting.")
+            self.io.error.no_recorded_setting()
             raise CommunicationEnd()
 
         parser = ConfigParser()
@@ -120,7 +123,7 @@ class KingCardSimulator:
 
         section = "server" if self.is_server else "client"
         if not parser.has_section(section):
-            print(f"[Error] No recorded setting for {section}.")
+            self.io.error.no_recorded_section(section)
             raise CommunicationEnd()
 
         if self.is_server:
@@ -128,10 +131,6 @@ class KingCardSimulator:
         else:
             self.ip = parser.get(section, "ip")
         self.port = int(parser.get(section, "port"))
-
-    def sleep(self) -> None:
-        """Sleep."""
-        sleep(SLEEP_TIME)
 
     def lock(self) -> None:
         """Lock the status."""
@@ -147,77 +146,74 @@ class KingCardSimulator:
             except CommunicationRestart:
                 self.round = 0
             except GameOver as e:
-                self.sleep()
                 match e.args[0]:
                     case "win":
-                        print(f"{SPLIT1}    Your've won the game!")
+                        self.io.line()
+                        self.io.game_win()
                     case "lose":
-                        print(f"{SPLIT1}    Your've losed the game!")
-                self.sleep()
-                print(f"\n    Your cards left   : {self.units}")
-                self.sleep()
-                print(f"    Enemy's cards left: {self.enemies}")
-                self.sleep()
+                        self.io.line()
+                        self.io.game_lose()
+                    case _:
+                        raise e
+                self.io.newline()
+                self.io.cards_left(self.ours)
                 self.round = -1
 
     def next_round(self) -> None:
         """Communicate with server/client."""
         if self.locked:
             self.locked = False
-            msg = input("    > ")
+            msg = self.io.input.action()
         elif self.round == -1:
-            msg = input(
-                f"{SPLIT1}[Game Over]\n    help: /h  quit: /q  restart: /r\n    > "
-            )
+            self.io.line()
+            self.io.game_over()
+            self.io.hint_restart()
+            msg = self.io.input.action()
         else:
             self.round += 1
             if self.round == 1:
-                print(
-                    f"{SPLIT1}    Your cards   : {self.units}\n"
-                    f"    Enemy's cards: {self.enemies}"
-                )
-                self.sleep()
-            msg = input(
-                f"{SPLIT1}[Round {self.round}] {self.units}  vs  {self.enemies}\n"
-                "    > "
-            )
+                self.io.line()
+                self.io.cards(self.ours)
+                self.io.cards(self.enemies)
+            self.io.line()
+            self.io.rount_start(self.round, self.ours, self.enemies)
+            msg = self.io.input.action()
         self._check_message(msg)
 
     def _check_message(self, message: str) -> None:
         if not message.startswith("/"):
-            if self.round == -1:
-                self.lock()
-                return
-            if not message:
+            if self.round == -1 or not message:
                 self.lock()
                 return
             for unit in ARMS.values():
                 if unit.match(message):
-                    print(f"    You played: {unit.fullname}")
-                    self.sleep()
+                    self.io.played(unit)
                     self.tcp_socket.send(unit.tag.encode("utf-8"))
                     enemy = ARMS[self._get_message_from_opponent()]
-                    print(f"    Enemy played: {enemy.fullname}")
-                    self.sleep()
-                    unit.on_round_begin(enemy, self.units, self.enemies)
-                    self.sleep()
+                    self.io.played(enemy, is_opponent=True)
+                    unit.on_round_begin(enemy, self.ours, self.enemies)
                     return
             self.lock()
+            return
 
         match message[1:].lower():
             case "q":
                 self.tcp_socket.send(message.encode("utf-8"))
-                print(f"{SPLIT2}[Exit] Waiting for the opponent...")
+                self.io.double_line()
+                self.io.wait_exit()
                 self.tcp_socket.recv(1024)
-                print("    Communication terminated successfully.")
+                self.io.communication_terminated()
                 self.tcp_socket.close()
                 raise CommunicationEnd()
             case "r":
                 self.tcp_socket.send(message.encode("utf-8"))
-                print(f"{SPLIT2}[Game Restart] Waiting for the opponent...")
-                self.sleep()
+                self.io.double_line()
+                self.io.wait_restart()
                 self.tcp_socket.recv(1024)
                 raise CommunicationRestart()
+            case "h":
+                self.io.help(1)
+                self.lock()
 
     def _get_message_from_opponent(self) -> str:
         msg = self.tcp_socket.recv(1024).decode("utf-8")
@@ -225,10 +221,11 @@ class KingCardSimulator:
             return msg
         match msg[1:].lower():
             case "q":
-                print(f"{SPLIT2}[Exit] The opponent terminated the communication.")
+                self.io.double_line()
+                self.io.opponent_exit()
                 self.tcp_socket.close()
                 raise CommunicationEnd()
             case "r":
-                print(f"{SPLIT2}[Game Restart] The opponent has restarted the game.")
-                self.sleep()
+                self.io.double_line()
+                self.io.opponent_restart()
                 raise CommunicationRestart()
