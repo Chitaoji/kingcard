@@ -1,5 +1,5 @@
 """
-Contains a counter of arms: UnitCounter.
+Contains a counter.
 
 NOTE: this module is private. All functions and objects are available in the main
 `kingcard` namespace - use that instead.
