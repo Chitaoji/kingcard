@@ -185,7 +185,10 @@ class KingCardSimulator:
             if self.round == -1 or not message:
                 self.lock()
                 return
-            for unit in ARMS.values():
+            for tag, n in self.ours.units.items():
+                if n <= 0:
+                    continue
+                unit = ARMS[tag]
                 if unit.match(message):
                     self.io.played(unit)
                     self.tcp_socket.send(unit.tag.encode("utf-8"))
