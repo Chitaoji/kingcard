@@ -39,36 +39,47 @@ class Unit:
         return isinstance(self, unit_type)
 
     def on_round_begin(
-        self, enemy: Self, ours: "CardCounter", enemies: "CardCounter"
+        self, enemy: Self, allies: "CardCounter", enemies: "CardCounter"
     ) -> None:
         """Actions on the begining of round."""
         self.io.newline()
-        self.on_battle(enemy, ours, enemies)
-        enemy.on_battle(self, enemies, ours)
+        self.on_fight(enemy, allies, enemies)
+        enemy.on_fight(self, enemies, allies)
 
-    def on_battle(
-        self, enemy: Self, ours: "CardCounter", enemies: "CardCounter"
+    def on_fight(
+        self, enemy: Self, allies: "CardCounter", enemies: "CardCounter"
     ) -> None:
         """Actions on the battle."""
         if enemy.rank < self.rank:
-            enemy.on_destroyed(self, enemies, ours)
+            enemy.on_destroyed(self, enemies, allies)
         elif enemy.rank == self.rank:
-            enemy.on_draw(self, enemies, ours)
+            enemy.on_draw(self, enemies, allies)
 
-    def on_draw(self, enemy: Self, ours: "CardCounter", enemies: "CardCounter") -> None:
+    def on_draw(
+        self, enemy: Self, allies: "CardCounter", enemies: "CardCounter"
+    ) -> None:
         """Actions on draw."""
         _ = enemy, enemies
-        if ours.is_opponent:
+        if allies.is_opponent:
             self.io.both_destroyed()
-        ours.remove(self.tag)
+        allies.remove(self.tag)
 
     def on_destroyed(
-        self, enemy: Self, ours: "CardCounter", enemies: "CardCounter"
+        self, enemy: Self, allies: "CardCounter", enemies: "CardCounter"
     ) -> None:
         """Actions on being destroyed."""
         _ = enemy, enemies
-        self.io.defeated(self, ours.is_opponent)
-        ours.remove(self.tag)
+        self.io.defeat(self, allies.is_opponent)
+        allies.remove(self.tag)
+
+    def on_captured(
+        self, enemy: Self, allies: "CardCounter", enemies: "CardCounter"
+    ) -> None:
+        """Actions on being captured."""
+        _ = enemy
+        self.io.capture(self, allies.is_opponent)
+        allies.remove(self.tag)
+        enemies.add(self.tag)
 
 
 class King(Unit):
@@ -77,17 +88,17 @@ class King(Unit):
     tag = "K"
     rank = 5
 
-    def on_draw(self, enemy: Self, ours, enemies) -> None:
+    def on_draw(self, enemy: Self, allies, enemies) -> None:
         """Actions on draw."""
-        if ours.is_opponent:
+        if allies.is_opponent:
             if enemy.is_a(King):
-                self.io.both_returned()
+                self.io.both_return()
             else:
-                enemy.on_destroyed(self, enemies, ours)
+                enemy.on_destroyed(self, enemies, allies)
 
-    def on_destroyed(self, enemy, ours, enemies) -> None:
-        super().on_destroyed(enemy, ours, enemies)
-        if ours.is_opponent:
+    def on_destroyed(self, enemy, allies, enemies) -> None:
+        super().on_destroyed(enemy, allies, enemies)
+        if allies.is_opponent:
             raise GameOver("win")
         raise GameOver("lose")
 
@@ -98,12 +109,12 @@ class Knight(Unit):
     tag = "N"
     rank = 4
 
-    def on_battle(self, enemy: Self, ours, enemies) -> None:
+    def on_fight(self, enemy: Self, allies, enemies) -> None:
         """Actions on meeting the enemy."""
         if enemy.is_a(Slave):
-            self.io.both_returned()
+            self.io.both_return()
         else:
-            super().on_battle(enemy, ours, enemies)
+            super().on_fight(enemy, allies, enemies)
 
 
 class Infantry(Unit):
@@ -119,13 +130,11 @@ class Militia(Unit):
     tag = "M"
     rank = 2
 
-    def on_battle(self, enemy: Self, ours, enemies) -> None:
+    def on_fight(self, enemy: Self, allies, enemies) -> None:
         if enemy.rank == 1:
-            self.io.captured(enemy, enemies.is_opponent)
-            enemies.remove(enemy.tag)
-            ours.add(enemy.tag)
+            enemy.on_captured(self, enemies, allies)
         else:
-            super().on_battle(enemy, ours, enemies)
+            super().on_fight(enemy, allies, enemies)
 
 
 class Slave(Unit):
@@ -134,16 +143,16 @@ class Slave(Unit):
     tag = "S"
     rank = 1
 
-    def on_battle(self, enemy: Self, ours, enemies) -> None:
+    def on_fight(self, enemy: Self, allies, enemies) -> None:
         if enemy.rank == 5:
-            enemy.on_destroyed(self, enemies, ours)
+            enemy.on_destroyed(self, enemies, allies)
         else:
-            super().on_battle(enemy, ours, enemies)
+            super().on_fight(enemy, allies, enemies)
 
-    def on_destroyed(self, enemy: Self, ours, enemies) -> None:
+    def on_destroyed(self, enemy: Self, allies, enemies) -> None:
         if enemy.rank == 5:
             return
-        super().on_destroyed(enemy, ours, enemies)
+        super().on_destroyed(enemy, allies, enemies)
 
 
 ARMS: dict[str, Unit] = {

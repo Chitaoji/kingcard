@@ -6,10 +6,11 @@ NOTE: this module is private. All functions and objects are available in the mai
 
 """
 
-from .arms import set_unit_io
+from .battle import KingCardBattle
+from .comm import TcpCommunicator
 from .counter import CardCounter
-from .game import KingCardGame, TcpCommunicator
 from .io import IO
+from .units import set_unit_io
 
 __all__ = ["KingCardSimulator"]
 
@@ -20,10 +21,12 @@ class KingCardSimulator:
     def __init__(self) -> None:
         """Initialize."""
         self.io = IO()
+        self.comm = TcpCommunicator(self.io)
+
         set_unit_io(self.io)
 
     def start_a_game(self) -> None:
         """Start a game."""
-        KingCardGame(
-            CardCounter(), CardCounter(None, True), self.io, TcpCommunicator(self.io)
+        KingCardBattle(
+            CardCounter(), CardCounter(None, True), self.io, self.comm, can_restart=True
         ).loop()

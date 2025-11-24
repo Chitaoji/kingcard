@@ -13,8 +13,8 @@ from typing import TYPE_CHECKING, Callable, TypeVar
 from . import helper
 
 if TYPE_CHECKING:
-    from .arms import Unit
     from .counter import CardCounter
+    from .units import Unit
 
 
 __all__ = []
@@ -128,22 +128,34 @@ class IO:
     def game_start(self):
         """[Game Start]"""
 
+    @title
+    def battle_start(self):
+        """[Battle Start]"""
+
     @info
     def hint(self):
         """help: /h  quit: /q"""
 
     @info
-    def hint_restart(self):
+    def hint_to_restart(self):
         """help: /h  quit: /q  restart: /r"""
 
     @title
     def help(self, _: int):
         """."""
         lines = helper.MAINPAGE.split("\n")
-        for x in lines[:-1]:
-            print(x)
+        length = -(-max(len(x) for x in lines) // 2)
+        wave = "～" * length
+        print(wave)
+        for x in lines:
             self.snap()
-        print(lines[-1])
+            print(x)
+        self.snap()
+        print(wave)
+
+    @info
+    def cannot_restart(self):
+        """Cannot restart now."""
 
     @info
     def settings_recorded(self, ini_path: Path):
@@ -151,12 +163,12 @@ class IO:
         print(f"Settings recorded in {ini_path}")
 
     @info
-    def game_win(self):
-        """Your've won the game!"""
+    def win_battle(self):
+        """Battle victory!"""
 
     @info
-    def game_lose(self):
-        """Your've lost the game!"""
+    def lose_battle(self):
+        """Battle lost!"""
 
     @title
     def game_over(self):
@@ -171,7 +183,7 @@ class IO:
             print(f"    Your cards left : {cards}")
 
     @info
-    def cards(self, cards: "CardCounter", align: bool = True):
+    def show_cards(self, cards: "CardCounter", align: bool = True):
         """."""
         if cards.is_opponent:
             print(f"    Enemy's cards : {cards}")
@@ -181,7 +193,7 @@ class IO:
             print(f"    Your cards : {cards}")
 
     @info
-    def played(self, unit: "Unit", is_opponent: bool = False):
+    def play(self, unit: "Unit", is_opponent: bool = False):
         """."""
         if is_opponent:
             print(f"    Enemy played : {unit.fullname}")
@@ -209,20 +221,20 @@ class IO:
         """[Game Restart] The opponent restarted the game."""
 
     @title
-    def rount_start(self, num: int, ours: "CardCounter", enemies: "CardCounter"):
+    def rount_start(self, num: int, allies: "CardCounter", enemies: "CardCounter"):
         """."""
-        print(f"[Round {num}]  {ours}  vs  {enemies}")
+        print(f"[Round {num}]  {allies}  vs  {enemies}")
 
     @info
     def both_destroyed(self):
         """Both were destroyed."""
 
     @info
-    def both_returned(self):
+    def both_return(self):
         """Both returned back."""
 
     @info
-    def defeated(self, unit: "Unit", is_opponent: bool = False):
+    def defeat(self, unit: "Unit", is_opponent: bool = False):
         """."""
         if is_opponent:
             print(f"    Enemy's {unit.fullname} was defeated.")
@@ -230,7 +242,7 @@ class IO:
             print(f"    Your {unit.fullname} was defeated.")
 
     @info
-    def captured(self, unit: "Unit", is_opponent: bool = False):
+    def capture(self, unit: "Unit", is_opponent: bool = False):
         """."""
         if is_opponent:
             print(f"    You captured Enemy's {unit.fullname}.")
