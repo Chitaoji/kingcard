@@ -13,14 +13,15 @@ from typing import TYPE_CHECKING, Callable, TypeVar
 from . import helper
 
 if TYPE_CHECKING:
+    from .cards import Card
     from .counter import CardCounter
-    from .units import Unit
 
 
 __all__ = []
 
 
 T = TypeVar("T")
+U = TypeVar("U")
 
 
 def title(method: T) -> T:
@@ -64,8 +65,13 @@ def error(method: T) -> T:
 def title_input(method: Callable[[T], None]) -> Callable[[T], str]:
     """Print the title and receive input."""
 
-    def wrapper(*_):
-        return input(method.__doc__ + " ").lower()
+    def wrapper(*args):
+        msg = input(method.__doc__ + " ").lower()
+        if msg.startswith("/"):
+            io: "InputIO" = args[0]
+            io.command(msg)
+            return wrapper(*args)
+        return msg
 
     return wrapper
 
@@ -73,8 +79,51 @@ def title_input(method: Callable[[T], None]) -> Callable[[T], str]:
 def info_input(method: Callable[[T], None]) -> Callable[[T], str]:
     """Print some info and receive input."""
 
-    def wrapper(*_):
-        return input("    " + method.__doc__ + " ").lower()
+    def wrapper(*args):
+        msg = input("    " + method.__doc__ + " ").lower()
+        if msg.startswith("/"):
+            io: "InputIO" = args[0]
+            io.command(msg)
+            return wrapper(*args)
+        return msg
+
+    return wrapper
+
+
+def info_reuiqre(
+    items: dict[str, U],
+) -> Callable[[Callable[[T], None]], Callable[[T], U]]:
+    """Print some info and require certain input."""
+
+    def decorator(method: Callable[[T], None]) -> Callable[[T], U]:
+        def wrapper(*args) -> U:
+            msg = input("    " + method.__doc__ + " ").lower()
+            if msg.startswith("/"):
+                io: "InputIO" = args[0]
+                io.command(msg)
+            elif msg in items:
+                return items[msg]
+            return wrapper(*args)
+
+        return wrapper
+
+    return decorator
+
+
+def info_reuiqre_card(method: Callable[[T], None]) -> Callable[[T], U]:
+    """Require a card."""
+
+    def wrapper(*args) -> U:
+        items: dict[str, "Card"] = args[-1]
+        msg = input("    " + method.__doc__ + " ").lower()
+        if msg.startswith("/"):
+            io: "InputIO" = args[0]
+            io.command(msg)
+        else:
+            for unit in items.values():
+                if unit.match(msg):
+                    return unit
+        return wrapper(*args)
 
     return wrapper
 
@@ -126,7 +175,7 @@ class IO:
 
     @title
     def game_start(self):
-        """[Game Start]"""
+        """[KingCard Game Start]"""
 
     @title
     def battle_start(self):
@@ -171,8 +220,8 @@ class IO:
         """Battle lost!"""
 
     @title
-    def game_over(self):
-        """[Game Over]"""
+    def battle_over(self):
+        """[Battle Over]"""
 
     @info
     def cards_left(self, cards: "CardCounter"):
@@ -193,12 +242,12 @@ class IO:
             print(f"    Your cards : {cards}")
 
     @info
-    def play(self, unit: "Unit", is_opponent: bool = False):
+    def play(self, card: "Card", is_opponent: bool = False):
         """."""
         if is_opponent:
-            print(f"    Enemy played : {unit.fullname}")
+            print(f"    Enemy played : {card.fullname}")
         else:
-            print(f"    You played   : {unit.fullname}")
+            print(f"    You played   : {card.fullname}")
 
     @title
     def wait_exit(self):
@@ -214,11 +263,11 @@ class IO:
 
     @title
     def wait_restart(self):
-        """[Game Restart] Waiting for the opponent..."""
+        """[Battle Restart] Waiting for the opponent..."""
 
     @title
     def opponent_restart(self):
-        """[Game Restart] The opponent restarted the game."""
+        """[Battle Restart] The opponent restarted the game."""
 
     @title
     def rount_start(self, num: int, allies: "CardCounter", enemies: "CardCounter"):
@@ -234,7 +283,7 @@ class IO:
         """Both returned back."""
 
     @info
-    def defeat(self, unit: "Unit", is_opponent: bool = False):
+    def defeat(self, unit: "Card", is_opponent: bool = False):
         """."""
         if is_opponent:
             print(f"    Enemy's {unit.fullname} was defeated.")
@@ -242,7 +291,7 @@ class IO:
             print(f"    Your {unit.fullname} was defeated.")
 
     @info
-    def capture(self, unit: "Unit", is_opponent: bool = False):
+    def capture(self, unit: "Card", is_opponent: bool = False):
         """."""
         if is_opponent:
             print(f"    You captured Enemy's {unit.fullname}.")
@@ -269,9 +318,21 @@ class InputIO:
     def server_ip(self):
         """server ip (skip to use the last setting):"""
 
-    @info_input
-    def action(self):
+    @info_reuiqre({"y": True, "n": False})
+    def yes_or_no(self):
         """>"""
+
+    @info_reuiqre_card
+    def require_card(self, items: dict[str, "Card"], /):
+        """>"""
+
+    @info_reuiqre({"": None})
+    def require_command(self, items: dict[str, "Card"], /):
+        """>"""
+
+    @staticmethod
+    def command(message: str) -> None:
+        """Needs to bind."""
 
 
 class ErrorIO:

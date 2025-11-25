@@ -8,7 +8,7 @@ NOTE: this module is private. All functions and objects are available in the mai
 
 from typing import TYPE_CHECKING, Self
 
-from .error import GameOver
+from .error import BattleOver
 
 if TYPE_CHECKING:
     from .counter import CardCounter
@@ -17,8 +17,8 @@ if TYPE_CHECKING:
 __all__ = []
 
 
-class Unit:
-    """Defines units."""
+class Card:
+    """Defines cards."""
 
     tag: str
     rank: int
@@ -34,9 +34,9 @@ class Unit:
         upper_name = name.upper()
         return upper_name == self.tag or upper_name == self.fullname.upper()
 
-    def is_a(self, unit_type: type) -> bool:
-        """Returns whether this unit is of `unit_type`."""
-        return isinstance(self, unit_type)
+    def is_a(self, cardtype: type) -> bool:
+        """Returns whether this card is of `cardtype`."""
+        return isinstance(self, cardtype)
 
     def on_round_begin(
         self, enemy: Self, allies: "CardCounter", enemies: "CardCounter"
@@ -82,7 +82,7 @@ class Unit:
         enemies.add(self.tag)
 
 
-class King(Unit):
+class King(Card):
     """King."""
 
     tag = "K"
@@ -99,11 +99,11 @@ class King(Unit):
     def on_destroyed(self, enemy, allies, enemies) -> None:
         super().on_destroyed(enemy, allies, enemies)
         if allies.is_opponent:
-            raise GameOver("win")
-        raise GameOver("lose")
+            raise BattleOver("win")
+        raise BattleOver("lose")
 
 
-class Knight(Unit):
+class Knight(Card):
     """Knight."""
 
     tag = "N"
@@ -117,14 +117,14 @@ class Knight(Unit):
             super().on_fight(enemy, allies, enemies)
 
 
-class Infantry(Unit):
+class Infantry(Card):
     """Infantry."""
 
     tag = "I"
     rank = 3
 
 
-class Militia(Unit):
+class Militia(Card):
     """Militia."""
 
     tag = "M"
@@ -137,7 +137,7 @@ class Militia(Unit):
             super().on_fight(enemy, allies, enemies)
 
 
-class Slave(Unit):
+class Slave(Card):
     """Slave."""
 
     tag = "S"
@@ -155,7 +155,7 @@ class Slave(Unit):
         super().on_destroyed(enemy, allies, enemies)
 
 
-ARMS: dict[str, Unit] = {
+ARMS: dict[str, Card] = {
     King.tag: King(),
     Knight.tag: Knight(),
     Infantry.tag: Infantry(),
@@ -164,7 +164,7 @@ ARMS: dict[str, Unit] = {
 }
 
 
-def set_unit_io(io: "IO") -> None:
-    """Set io for the units."""
-    for unit in ARMS.values():
-        unit.io = io
+def set_cards_io(io: "IO") -> None:
+    """Set io for the cards."""
+    for card in ARMS.values():
+        card.io = io

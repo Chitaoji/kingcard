@@ -10,7 +10,7 @@ from configparser import ConfigParser
 from pathlib import Path
 from socket import AF_INET, SOCK_STREAM, socket
 
-from .error import CommunicationEnd, CommunicationError
+from .error import CommunicationError, GameQuit
 from .io import IO
 
 __all__ = ["TcpCommunicator"]
@@ -109,7 +109,7 @@ class TcpCommunicator(Communicator):
 
         if not (ini_path := self.datadir / "settings.ini").exists():
             self.io.error.no_recorded_setting()
-            raise CommunicationEnd()
+            raise GameQuit()
 
         parser = ConfigParser()
         parser.read(ini_path, encoding="utf-8")
@@ -117,7 +117,7 @@ class TcpCommunicator(Communicator):
         section = "server" if self.is_server else "client"
         if not parser.has_section(section):
             self.io.error.no_recorded_section(section)
-            raise CommunicationEnd()
+            raise GameQuit()
 
         if self.is_server:
             ip = ""

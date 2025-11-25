@@ -13,13 +13,13 @@ class CommunicationError(Exception):
     """Communication Error."""
 
 
-class CommunicationEnd(Exception):
-    """Communication End."""
+class GameQuit(Exception):
+    """Quit the game."""
 
 
-class CommunicationRestart(Exception):
-    """Communication Restart."""
+class BattleRestart(Exception):
+    """Battle restart."""
 
 
-class GameOver(Exception):
-    """Game over."""
+class BattleOver(Exception):
+    """Battle over."""

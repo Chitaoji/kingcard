@@ -17,8 +17,8 @@ class CardCounter:
     ) -> None:
         if initial is None:
             initial = {"K": 1, "N": 1, "I": 2, "M": 4, "S": 2}
-        self.initial_units = initial
-        self.units = initial.copy()
+        self.init = initial
+        self.cards = initial.copy()
         self.is_opponent = is_opponent
 
     def __repr__(self) -> str:
@@ -27,16 +27,16 @@ class CardCounter:
     def __str__(self) -> str:
         return "".join(
             k.upper() * v if v <= 3 else f"({k.upper()}x{v})"
-            for k, v in self.units.items()
+            for k, v in self.cards.items()
         )
 
     def add(self, tag: str) -> None:
-        """Add a unit."""
-        self.units[tag] += 1
+        """Add a card."""
+        self.cards[tag] += 1
 
     def remove(self, tag: str) -> None:
-        """Remove a unit."""
-        if self.units[tag] > 0:
-            self.units[tag] -= 1
+        """Remove a card."""
+        if self.cards[tag] > 0:
+            self.cards[tag] -= 1
         else:
-            raise ValueError(f"tag {tag!r} has no units left")
+            raise ValueError(f"tag {tag!r} has no cards left")
