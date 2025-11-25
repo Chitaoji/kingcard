@@ -10,7 +10,7 @@ from configparser import ConfigParser
 from pathlib import Path
 from socket import AF_INET, SOCK_STREAM, socket
 
-from .error import CommunicationError, GameQuit
+from .error import BattleRestart, CommunicationError, GameQuit
 from .io import IO
 
 __all__ = ["TcpCommunicator"]
@@ -19,44 +19,67 @@ __all__ = ["TcpCommunicator"]
 class Communicator:
     """Communicate with the opponent."""
 
+    def __init__(self, io: IO) -> None:
+        self.io = io
+
     def send(self, message: str) -> None:
         """Send messages."""
 
     def recv(self) -> str:
         """Receive messages."""
+        return ""
+
+    def recv_only(self) -> str:
+        """Receive messages only."""
+        return ""
 
     def close(self) -> None:
         """Close the communicator."""
+
+    def _check_for_command(self, msg: str) -> None:
+        if not msg.startswith("/"):
+            return
+        match msg[1:]:
+            case "q":
+                self.io.double_line()
+                self.io.opponent_exit()
+                self.close()
+                raise GameQuit()
+            case "r":
+                self.io.double_line()
+                self.io.opponent_restart()
+                raise BattleRestart()
+        raise CommunicationError()
 
 
 class TcpCommunicator(Communicator):
     """Communicate with the opponent."""
 
     def __init__(self, io: IO) -> None:
+        super().__init__(io)
         self.datadir = Path("~/AppData/Local/KingCard").expanduser()
-        self.io = io
 
-        match io.input.start_as_server():
-            case "y":
-                self.is_server = True
-            case "n":
-                self.is_server = False
-            case _:
-                raise ValueError("please type y/n")
+        io.start_as_server()
+        self.is_server = io.input.yes_or_no()
 
         if self.is_server:
             ip = ""
-            port = io.input.server_port()
+            io.server_port()
+            port = io.input.input()
             if not port:
                 ip, port = self.load_settings()
             else:
                 self.save_settings(ip, port)
         else:
-            ip = io.input.server_ip()
+            io.server_ip()
+            ip = io.input.input()
             if not ip:
                 ip, port = self.load_settings()
             else:
-                port = io.input.server_port_no_skip()
+                io.server_port()
+                port = io.input.input()
+                if not port:
+                    _, port = self.load_settings()
                 self.save_settings(ip, port)
 
         tcp_socket = socket(AF_INET, SOCK_STREAM)
@@ -127,13 +150,15 @@ class TcpCommunicator(Communicator):
         return ip, port
 
     def send(self, message: str) -> None:
-        """Send messages."""
         return self.tcp_socket.send(message.encode("utf-8"))
 
     def recv(self) -> str:
-        """Receive messages."""
+        msg = self.tcp_socket.recv(1024).decode("utf-8")
+        self._check_for_command(msg)
+        return msg
+
+    def recv_only(self) -> str:
         return self.tcp_socket.recv(1024).decode("utf-8")
 
     def close(self) -> None:
-        """Close the communicator."""
         self.tcp_socket.close()

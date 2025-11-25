@@ -43,8 +43,6 @@ class KingCardBattle:
         while True:
             try:
                 self.next_round()
-            except GameQuit:
-                break
             except BattleRestart:
                 self.allies, self.enemies = self.init
                 self.round = 0
@@ -70,7 +68,7 @@ class KingCardBattle:
             self.io.line()
             self.io.battle_over()
             self.io.hint_to_restart()
-            card = self.io.input.require_command(
+            card = self.io.input.command(
                 {tag: ARMS[tag] for tag, n in self.allies.cards.items() if n > 0}
             )
         else:
@@ -82,29 +80,12 @@ class KingCardBattle:
                 self.io.show_cards(self.enemies)
             self.io.line()
             self.io.rount_start(self.round, self.allies, self.enemies)
-            card = self.io.input.require_card(
+            card: Card = self.io.input.card(
                 {tag: ARMS[tag] for tag, n in self.allies.cards.items() if n > 0}
             )
-        self._check_message(card)
 
-    def _check_message(self, card: Card) -> None:
         self.io.play(card)
         self.comm.send(card.tag)
-        enemy = ARMS[self._get_message_from_opponent()]
+        enemy = ARMS[self.comm.recv()]
         self.io.play(enemy, is_opponent=True)
         card.on_round_begin(enemy, self.allies, self.enemies)
-
-    def _get_message_from_opponent(self) -> str:
-        msg = self.comm.recv()
-        if not msg.startswith("/"):
-            return msg
-        match msg[1:].lower():
-            case "q":
-                self.io.double_line()
-                self.io.opponent_exit()
-                self.comm.close()
-                raise GameQuit()
-            case "r":
-                self.io.double_line()
-                self.io.opponent_restart()
-                raise BattleRestart()

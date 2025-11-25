@@ -62,45 +62,31 @@ def error(method: T) -> T:
     return wrapper
 
 
-def title_input(method: Callable[[T], None]) -> Callable[[T], str]:
-    """Print the title and receive input."""
-
-    def wrapper(*args):
-        msg = input(method.__doc__ + " ").lower()
-        if msg.startswith("/"):
-            io: "InputIO" = args[0]
-            io.command(msg)
-            return wrapper(*args)
-        return msg
-
-    return wrapper
-
-
-def info_input(method: Callable[[T], None]) -> Callable[[T], str]:
-    """Print some info and receive input."""
+def receive(method: Callable[[T], None]) -> Callable[[T], str]:
+    """Receive the input."""
 
     def wrapper(*args):
         msg = input("    " + method.__doc__ + " ").lower()
         if msg.startswith("/"):
             io: "InputIO" = args[0]
-            io.command(msg)
+            io.command_behaviour(msg)
             return wrapper(*args)
         return msg
 
     return wrapper
 
 
-def info_reuiqre(
+def require(
     items: dict[str, U],
 ) -> Callable[[Callable[[T], None]], Callable[[T], U]]:
-    """Print some info and require certain input."""
+    """Require certain input."""
 
     def decorator(method: Callable[[T], None]) -> Callable[[T], U]:
         def wrapper(*args) -> U:
             msg = input("    " + method.__doc__ + " ").lower()
             if msg.startswith("/"):
                 io: "InputIO" = args[0]
-                io.command(msg)
+                io.command_behaviour(msg)
             elif msg in items:
                 return items[msg]
             return wrapper(*args)
@@ -110,7 +96,7 @@ def info_reuiqre(
     return decorator
 
 
-def info_reuiqre_card(method: Callable[[T], None]) -> Callable[[T], U]:
+def require_card(method: Callable[[T], None]) -> Callable[[T], U]:
     """Require a card."""
 
     def wrapper(*args) -> U:
@@ -118,7 +104,7 @@ def info_reuiqre_card(method: Callable[[T], None]) -> Callable[[T], U]:
         msg = input("    " + method.__doc__ + " ").lower()
         if msg.startswith("/"):
             io: "InputIO" = args[0]
-            io.command(msg)
+            io.command_behaviour(msg)
         else:
             for unit in items.values():
                 if unit.match(msg):
@@ -251,7 +237,7 @@ class IO:
 
     @title
     def wait_exit(self):
-        """[Exit] Waiting for the opponent..."""
+        """[Exit] Waiting..."""
 
     @info
     def communication_terminated(self):
@@ -298,40 +284,40 @@ class IO:
         else:
             print(f"    Enemy captured your {unit.fullname}.")
 
+    @title
+    def start_as_server(self):
+        """[Init] Start the game as a server? (y/n)"""
+
+    @title
+    def server_ip(self):
+        """server ip (skip to use the last setting):"""
+
+    @title
+    def server_port(self):
+        """server port (skip to use the last setting):"""
+
 
 class InputIO:
     """Input things (by default in English)."""
 
-    @title_input
-    def start_as_server(self):
-        """[Init] Start the game as a server? (y/n)"""
+    @receive
+    def input(self):
+        """>"""
 
-    @info_input
-    def server_port(self):
-        """server port (skip to use the last setting):"""
-
-    @info_input
-    def server_port_no_skip(self):
-        """server port:"""
-
-    @info_input
-    def server_ip(self):
-        """server ip (skip to use the last setting):"""
-
-    @info_reuiqre({"y": True, "n": False})
+    @require({"y": True, "n": False})
     def yes_or_no(self):
         """>"""
 
-    @info_reuiqre_card
-    def require_card(self, items: dict[str, "Card"], /):
+    @require_card
+    def card(self, items: dict[str, "Card"], /):
         """>"""
 
-    @info_reuiqre({"": None})
-    def require_command(self, items: dict[str, "Card"], /):
+    @require({"": None})
+    def command(self, items: dict[str, "Card"], /):
         """>"""
 
     @staticmethod
-    def command(message: str) -> None:
+    def command_behaviour(message: str) -> None:
         """Needs to bind."""
 
 

@@ -8,7 +8,7 @@ NOTE: this module is private. All functions and objects are available in the mai
 
 from .battle import KingCardBattle
 from .cards import set_cards_io
-from .comm import TcpCommunicator
+from .comm import Communicator, TcpCommunicator
 from .counter import CardCounter
 from .error import BattleRestart, GameQuit
 from .io import IO
@@ -22,7 +22,7 @@ class KingCardSimulator:
     def __init__(self) -> None:
         """Initialize."""
         self.io = IO()
-        self.io.input.command = self.command
+        self.io.input.command_behaviour = self.command_behaviour
         set_cards_io(self.io)
 
         self.io.game_start()
@@ -30,6 +30,7 @@ class KingCardSimulator:
         self.io.line()
         self.is_quick_game = False
 
+        self.comm = Communicator(self.io)
         self.comm = TcpCommunicator(self.io)
 
     def start_a_game(self) -> None:
@@ -40,14 +41,14 @@ class KingCardSimulator:
         ).loop()
         self.is_quick_game = False
 
-    def command(self, message: str) -> None:
-        """System io."""
+    def command_behaviour(self, message: str) -> None:
+        """Behaviour when receiving commands."""
         match message[1:]:
             case "q":
                 self.comm.send(message)
                 self.io.double_line()
                 self.io.wait_exit()
-                self.comm.recv()
+                self.comm.recv_only()
                 self.io.communication_terminated()
                 self.comm.close()
                 raise GameQuit()

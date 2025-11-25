@@ -9,7 +9,7 @@ NOTE: this module is private. All functions and objects are available in the mai
 import click
 
 from .core import KingCardSimulator
-from .error import CommunicationError
+from .error import CommunicationError, GameQuit
 
 
 @click.command(context_settings={"help_option_names": ["-h", "--help"]})
@@ -18,5 +18,5 @@ def run() -> None:
     try:
         simulator = KingCardSimulator()
         simulator.start_a_game()
-    except CommunicationError:
+    except (CommunicationError, GameQuit):
         pass
