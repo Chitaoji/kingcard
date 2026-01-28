@@ -236,7 +236,7 @@ class IO:
             print(f"    You played   : {card.fullname}")
 
     @title
-    def wait_exit(self):
+    def wait_for_exit(self):
         """[Exit] Waiting..."""
 
     @info
@@ -248,7 +248,7 @@ class IO:
         """[Exit] The opponent terminated the communication."""
 
     @title
-    def wait_restart(self):
+    def wait_for_restart(self):
         """[Battle Restart] Waiting for the opponent..."""
 
     @title

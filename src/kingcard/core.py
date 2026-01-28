@@ -47,7 +47,7 @@ class KingCardSimulator:
             case "q":
                 self.comm.send(message)
                 self.io.double_line()
-                self.io.wait_exit()
+                self.io.wait_for_exit()
                 self.comm.recv_only()
                 self.io.communication_terminated()
                 self.comm.close()
@@ -56,7 +56,7 @@ class KingCardSimulator:
                 if self.is_quick_game:
                     self.comm.send(message)
                     self.io.double_line()
-                    self.io.wait_restart()
+                    self.io.wait_for_restart()
                     self.comm.recv()
                     raise BattleRestart()
                 self.io.cannot_restart()

@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING
 
 from .cards import ARMS, Card
 from .counter import CardCounter
-from .error import BattleOver, BattleRestart, GameQuit
+from .error import BattleOver, BattleRestart
 from .io import IO
 
 if TYPE_CHECKING:
