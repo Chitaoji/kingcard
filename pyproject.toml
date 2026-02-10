@@ -17,7 +17,7 @@ description = "Provides a simulator of the King-Card game."
 readme = "README.md"
 license = "BSD-3-Clause"
 license-files = ["LICENSE"]
-keywords = ["config"]
+keywords = ["game"]
 classifiers = [
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.12"
