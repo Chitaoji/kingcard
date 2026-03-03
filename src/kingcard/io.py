@@ -256,7 +256,7 @@ class IO:
         """[Battle Restart] The opponent restarted the game."""
 
     @title
-    def rount_start(self, num: int, allies: "CardCounter", enemies: "CardCounter"):
+    def round_start(self, num: int, allies: "CardCounter", enemies: "CardCounter"):
         """."""
         print(f"[Round {num}]  {allies}  vs  {enemies}")
 

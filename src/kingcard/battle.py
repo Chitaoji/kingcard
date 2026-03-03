@@ -77,7 +77,7 @@ class KingCardBattle:
                 self.io.show_cards(self.allies)
                 self.io.show_cards(self.enemies)
             self.io.line()
-            self.io.rount_start(self.round, self.allies, self.enemies)
+            self.io.round_start(self.round, self.allies, self.enemies)
             card: Card = self.io.input.card(
                 {tag: ARMS[tag] for tag, n in self.allies.cards.items() if n > 0}
             )
