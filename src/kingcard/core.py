@@ -36,8 +36,8 @@ class KingCardSimulator:
         if not self.is_single_mode:
             self.comm = TcpCommunicator(self.io)
 
-    def start_a_game(self) -> None:
-        """Start a game."""
+    def start_a_quick_game(self) -> None:
+        """Start a quick game."""
         self.is_quick_game = True
         allies = CardCounter()
         enemies = CardCounter(None, True)

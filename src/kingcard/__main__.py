@@ -17,6 +17,6 @@ def run() -> None:
     """Start a king-card game."""
     try:
         simulator = KingCardSimulator()
-        simulator.start_a_game()
+        simulator.start_a_quick_game()
     except (CommunicationError, GameQuit):
         pass
