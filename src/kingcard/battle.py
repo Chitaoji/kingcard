@@ -60,8 +60,6 @@ class KingCardBattle:
                 self.io.cards_left(self.allies)
                 self.round = -1
 
-        return self.allies
-
     def next_round(self) -> None:
         """Communicate with server/client."""
         if self.round == -1:
