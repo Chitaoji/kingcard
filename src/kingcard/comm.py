@@ -162,3 +162,7 @@ class TcpCommunicator(Communicator):
 
     def close(self) -> None:
         self.tcp_socket.close()
+
+
+class AiCommunicator(Communicator):
+    pass
