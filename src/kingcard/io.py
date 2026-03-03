@@ -285,6 +285,10 @@ class IO:
             print(f"    Enemy captured your {unit.fullname}.")
 
     @title
+    def start_single_mode(self):
+        """[Init] Start a single-player game? (y/n)"""
+
+    @title
     def start_as_server(self):
         """[Init] Start the game as a server? (y/n)"""
 

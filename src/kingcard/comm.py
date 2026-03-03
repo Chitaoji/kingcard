@@ -8,12 +8,14 @@ NOTE: this module is private. All functions and objects are available in the mai
 
 from configparser import ConfigParser
 from pathlib import Path
+from random import choice
 from socket import AF_INET, SOCK_STREAM, socket
 
+from .counter import CardCounter
 from .error import BattleRestart, CommunicationError, GameQuit
 from .io import IO
 
-__all__ = ["TcpCommunicator"]
+__all__ = ["TcpCommunicator", "AiCommunicator"]
 
 
 class Communicator:
@@ -165,4 +167,27 @@ class TcpCommunicator(Communicator):
 
 
 class AiCommunicator(Communicator):
-    pass
+    """Communicate with a local AI opponent."""
+
+    def __init__(self, io: IO, enemies: CardCounter) -> None:
+        super().__init__(io)
+        self.enemies = enemies
+        self.last_message = ""
+
+    def send(self, message: str) -> None:
+        self.last_message = message
+
+    def recv(self) -> str:
+        if self.last_message.startswith("/"):
+            self._check_for_command(self.last_message)
+            return self.last_message
+        options = [tag for tag, n in self.enemies.cards.items() for _ in range(n)]
+        if not options:
+            raise CommunicationError()
+        return choice(options)
+
+    def recv_only(self) -> str:
+        return self.last_message
+
+    def close(self) -> None:
+        return None
