@@ -33,7 +33,9 @@ class KingCardSimulator:
         self.comm = Communicator(self.io)
         self.io.start_single_mode()
         self.is_single_mode = self.io.input.yes_or_no()
-        if not self.is_single_mode:
+        if self.is_single_mode:
+            self.comm = AiCommunicator(self.io)
+        else:
             self.comm = TcpCommunicator(self.io)
 
     def start_a_quick_game(self) -> None:
@@ -41,8 +43,7 @@ class KingCardSimulator:
         self.is_quick_game = True
         allies = CardCounter()
         enemies = CardCounter(None, True)
-        if self.is_single_mode:
-            self.comm = AiCommunicator(self.io, enemies)
+        self.comm.set_enemies(enemies)
         KingCardBattle(allies, enemies, self.io, self.comm).loop()
         self.is_quick_game = False
 

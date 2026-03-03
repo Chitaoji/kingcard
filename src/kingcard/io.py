@@ -120,7 +120,7 @@ class IO:
     LINE = "-" * 50
     DOUBLE_LINE = "=" * 50
     SLEEP_TIME = 0.6
-    SNAP_TIME = 0.06
+    SNAP_TIME = 0.1
 
     def __init__(self):
         self.input = InputIO()

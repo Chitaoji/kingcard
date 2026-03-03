@@ -23,9 +23,11 @@ class Communicator:
 
     def __init__(self, io: IO) -> None:
         self.io = io
+        self.last_message = ""
 
     def send(self, message: str) -> None:
         """Send messages."""
+        return None
 
     def recv(self) -> str:
         """Receive messages."""
@@ -37,6 +39,10 @@ class Communicator:
 
     def close(self) -> None:
         """Close the communicator."""
+
+    def set_enemies(self, enemies: CardCounter) -> None:
+        """Set the enemies (for single mode)."""
+        return None
 
     def _check_for_command(self, msg: str) -> None:
         if not msg.startswith("/"):
@@ -152,7 +158,8 @@ class TcpCommunicator(Communicator):
         return ip, port
 
     def send(self, message: str) -> None:
-        return self.tcp_socket.send(message.encode("utf-8"))
+        self.last_message = message.encode("utf-8")
+        return self.tcp_socket.send(self.last_message)
 
     def recv(self) -> str:
         msg = self.tcp_socket.recv(1024).decode("utf-8")
@@ -169,17 +176,18 @@ class TcpCommunicator(Communicator):
 class AiCommunicator(Communicator):
     """Communicate with a local AI opponent."""
 
-    def __init__(self, io: IO, enemies: CardCounter) -> None:
+    def __init__(self, io: IO) -> None:
         super().__init__(io)
+        self.enemies = None
+
+    def set_enemies(self, enemies: CardCounter) -> None:
         self.enemies = enemies
-        self.last_message = ""
 
     def send(self, message: str) -> None:
         self.last_message = message
 
     def recv(self) -> str:
         if self.last_message.startswith("/"):
-            self._check_for_command(self.last_message)
             return self.last_message
         options = [tag for tag, n in self.enemies.cards.items() for _ in range(n)]
         if not options:
